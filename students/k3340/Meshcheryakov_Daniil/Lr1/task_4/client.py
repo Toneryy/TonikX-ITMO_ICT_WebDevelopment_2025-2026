@@ -20,6 +20,11 @@ def main():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
 
+        nickname = input("Введите ваш ник: ").strip()
+        if not nickname:
+            nickname = "anon"
+        s.sendall(nickname.encode("utf-8"))
+
         stop_event = threading.Event()
         t = threading.Thread(target=reader, args=(s, stop_event))
         t.start()

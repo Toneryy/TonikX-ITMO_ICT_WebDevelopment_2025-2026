@@ -1,237 +1,118 @@
-# Практическая работа №2.2: Реализация CRUD-интерфейса средствами Django
+# Практическая работа №2.2: Миграции и работа с админ-панелью
 
 ## Цель работы
 
-Научиться реализовывать CRUD-интерфейсы (_Create, Read, Update, Delete_) средствами Django Web Framework.
+Научиться выполнять миграции, регистрировать модели в административной панели и работать с базой данных через интерфейс администратора Django.
 
 ---
 
 ## Ход работы
 
-### 1. Создание модели Book
+### 1. Создание миграций и их применение
+
+После описания моделей выполняем команды:
+
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+В результате создаются таблицы для моделей `Reader`, `Book` и `Borrowing` в базе данных **SQLite3**.
+Пример вывода в терминале:
+
+```
+Migrations for 'project_first_app':
+  project_first_app/migrations/0001_initial.py
+    - Create model Reader
+    - Create model Book
+    - Create model Borrowing
+```
+
+---
+
+### 2. Создание суперпользователя
+
+```bash
+python manage.py createsuperuser
+```
+
+Указываем имя, почту и пароль администратора.
+После этого можно войти в админ-панель по адресу:
+**[http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)**
+
+---
+
+### 3. Регистрация моделей в админ-панели
 
 ```python
-from django.db import models
+from django.contrib import admin
+from .models import Reader, Book, Borrowing
 
-class Book(models.Model):
-    title = models.CharField(max_length=100)
-    author = models.CharField(max_length=100)
-    year = models.PositiveIntegerField()
+@admin.register(Reader)
+class ReaderAdmin(admin.ModelAdmin):
+    list_display = ('first_name', 'last_name', 'email', 'created_at')
+    search_fields = ('first_name', 'last_name', 'email')
 
-    def __str__(self):
-        return f"{self.title} ({self.author}, {self.year})"
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = ('title', 'author', 'year', 'available')
+    list_filter = ('available', 'year')
+    search_fields = ('title', 'author')
+
+@admin.register(Borrowing)
+class BorrowingAdmin(admin.ModelAdmin):
+    list_display = ('reader', 'book', 'date_from', 'date_to')
+    list_filter = ('date_from', 'date_to')
 ```
+
+Теперь модели отображаются в интерфейсе администратора и доступны для редактирования.
 
 ---
 
-### 2. Настройка views.py
+### 4. Добавление данных через админ-панель
+
+В административной панели были добавлены:
+
+- **2 читателя** (Reader)
+- **4 книги** (Book)
+- **несколько записей Borrowing** — для связи читателей с книгами
+
+Каждое заимствование книги содержит даты начала и конца (`date_from`, `date_to`), что позволяет отслеживать использование книг.
+
+---
+
+### 5. Проверка в базе данных
+
+После добавления записей таблицы можно просмотреть в **DB Browser for SQLite** или через Django shell:
+
+```bash
+python manage.py shell
+```
 
 ```python
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Book
-from .forms import BookForm
-
-def book_list(request):
-    books = Book.objects.all()
-    return render(request, "books/book_list.html", {"books": books})
-
-def book_create(request):
-    if request.method == "POST":
-        form = BookForm(request.POST)
-        if form.is_valid():
-            form.save()
-            return redirect("book_list")
-    else:
-        form = BookForm()
-    return render(request, "books/book_form.html", {"form": form, "title": "Добавить книгу"})
-
-def book_update(request, pk):
-    book = get_object_or_404(Book, pk=pk)
-    if request.method == "POST":
-        form = BookForm(request.POST, instance=book)
-        if form.is_valid():
-            form.save()
-            return redirect("book_list")
-    else:
-        form = BookForm(instance=book)
-    return render(request, "books/book_form.html", {"form": form, "title": "Редактировать книгу"})
-
-def book_delete(request, pk):
-    book = get_object_or_404(Book, pk=pk)
-    if request.method == "POST":
-        book.delete()
-        return redirect("book_list")
-    return render(request, "books/book_delete.html", {"book": book})
-```
-
----
-
-### 3. Форма (forms.py)
-
-```python
-from django import forms
-from .models import Book
-
-class BookForm(forms.ModelForm):
-    class Meta:
-        model = Book
-        fields = ["title", "author", "year"]
-```
-
----
-
-### 4. Настройка URL-маршрутов
-
-```python
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path("", views.book_list, name="book_list"),
-    path("create/", views.book_create, name="book_create"),
-    path("<int:pk>/update/", views.book_update, name="book_update"),
-    path("<int:pk>/delete/", views.book_delete, name="book_delete"),
-]
-```
-
----
-
-### 5. Шаблоны
-
-#### 📄 `book_list.html`
-
-```html
-<!DOCTYPE html>
-<html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Список книг</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body class="bg-light">
-    <div class="container py-5">
-      <h1 class="mb-4 text-center">📚 Список книг</h1>
-
-      <div class="text-end mb-3">
-        <a href="{% url 'book_create' %}" class="btn btn-success"
-          >➕ Добавить книгу</a
-        >
-      </div>
-
-      <table class="table table-striped table-bordered align-middle">
-        <thead class="table-dark text-center">
-          <tr>
-            <th>#</th>
-            <th>Название</th>
-            <th>Автор</th>
-            <th>Год</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for book in books %}
-          <tr>
-            <td class="text-center">{{ forloop.counter }}</td>
-            <td>{{ book.title }}</td>
-            <td>{{ book.author }}</td>
-            <td class="text-center">{{ book.year }}</td>
-            <td class="text-center">
-              <a
-                href="{% url 'book_update' book.pk %}"
-                class="btn btn-warning btn-sm"
-                >✏</a
-              >
-              <a
-                href="{% url 'book_delete' book.pk %}"
-                class="btn btn-danger btn-sm"
-                >🗑</a
-              >
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="5" class="text-center text-muted">Нет книг</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </body>
-</html>
-```
-
----
-
-#### 📄 `book_form.html`
-
-```html
-<!DOCTYPE html>
-<html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <title>{{ title }}</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body class="bg-light">
-    <div class="container py-5">
-      <h2 class="mb-4 text-center">{{ title }}</h2>
-      <form method="post" class="card p-4 shadow-sm bg-white">
-        {% csrf_token %} {{ form.as_p }}
-        <button class="btn btn-primary">💾 Сохранить</button>
-        <a href="{% url 'book_list' %}" class="btn btn-secondary">⬅ Назад</a>
-      </form>
-    </div>
-  </body>
-</html>
-```
-
----
-
-#### 📄 `book_delete.html`
-
-```html
-<!DOCTYPE html>
-<html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Удаление книги</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body class="bg-light">
-    <div class="container py-5 text-center">
-      <h3 class="mb-4">Удалить книгу "{{ book.title }}"?</h3>
-      <form method="post">
-        {% csrf_token %}
-        <button class="btn btn-danger">🗑 Удалить</button>
-        <a href="{% url 'book_list' %}" class="btn btn-secondary">Отмена</a>
-      </form>
-    </div>
-  </body>
-</html>
+from project_first_app.models import Reader, Book, Borrowing
+print(Reader.objects.all())
+print(Book.objects.all())
+print(Borrowing.objects.all())
 ```
 
 ---
 
 ## Результаты
 
-- Реализованы функции добавления, редактирования, просмотра и удаления книг.
-- Все действия выполняются через веб-интерфейс на Django.
-- Интерфейс оформлен с помощью **Bootstrap 5**.
+- Миграции успешно созданы и применены.
+- В административной панели зарегистрированы все модели.
+- Добавлены тестовые данные и проверено их сохранение в базе.
+- Админ-интерфейс предоставляет поиск, фильтрацию и редактирование записей.
 
 ---
 
 ## Выводы
 
-1. Освоена базовая реализация CRUD-интерфейсов в Django.
-2. Использованы формы `ModelForm` для удобства работы с моделями.
-3. В шаблонах применены теги Django (`{% csrf_token %}`, `{% for %}` и др.).
-4. Интерфейс стал понятным и аккуратным благодаря Bootstrap.
+1. Освоен процесс миграций и синхронизации моделей с базой данных.
+2. Получены навыки работы с административной панелью Django.
+3. Проверена корректность моделей и их связей на примере тестовых данных.
+
+```
+
+```

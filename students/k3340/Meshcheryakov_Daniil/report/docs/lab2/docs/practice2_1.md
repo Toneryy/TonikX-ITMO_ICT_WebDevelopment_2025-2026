@@ -1,248 +1,126 @@
-# Практическая работа 2.2: Реализация CRUD-интерфейса в Django
 
-## Условие
+# Практическая работа №2.1: Создание проекта и моделей Django
 
-Реализовать CRUD (Create, Read, Update, Delete) интерфейс для работы с объектами модели **Book**.
-Пользователь должен иметь возможность добавлять, просматривать, редактировать и удалять книги.
-Для отображения данных использовать HTML-шаблоны и **Bootstrap** для оформления.
+## Цель работы
+
+Научиться создавать Django-проект, подключать приложение и описывать модели данных средствами **Django ORM**.
 
 ---
 
-## Код программы
+## Ход работы
 
-### `models.py`
+### 1. Создание проекта и приложения
 
-```python
-from django.db import models
-
-class Book(models.Model):
-    title = models.CharField("Название", max_length=200)
-    author = models.CharField("Автор", max_length=100)
-    year = models.IntegerField("Год издания")
-
-    def __str__(self):
-        return f"{self.title} ({self.author})"
+```bash
+django-admin startproject django_project_meshcheryakov
+cd django_project_meshcheryakov
+python manage.py startapp project_first_app
 ```
 
----
-
-### `views.py`
+Добавляем приложение в `settings.py`:
 
 ```python
-from django.shortcuts import render, redirect, get_object_or_404
-from .models import Book
-
-def book_list(request):
-    books = Book.objects.all()
-    return render(request, 'main/book_list.html', {'books': books})
-
-def book_create(request):
-    if request.method == 'POST':
-        title = request.POST.get('title')
-        author = request.POST.get('author')
-        year = request.POST.get('year')
-        Book.objects.create(title=title, author=author, year=year)
-        return redirect('book_list')
-    return render(request, 'main/book_form.html')
-
-def book_update(request, pk):
-    book = get_object_or_404(Book, pk=pk)
-    if request.method == 'POST':
-        book.title = request.POST.get('title')
-        book.author = request.POST.get('author')
-        book.year = request.POST.get('year')
-        book.save()
-        return redirect('book_list')
-    return render(request, 'main/book_form.html', {'book': book})
-
-def book_delete(request, pk):
-    book = get_object_or_404(Book, pk=pk)
-    if request.method == 'POST':
-        book.delete()
-        return redirect('book_list')
-    return render(request, 'main/book_confirm_delete.html', {'book': book})
-```
-
----
-
-### `urls.py`
-
-```python
-from django.urls import path
-from . import views
-
-urlpatterns = [
-    path('', views.book_list, name='book_list'),
-    path('add/', views.book_create, name='book_create'),
-    path('edit/<int:pk>/', views.book_update, name='book_update'),
-    path('delete/<int:pk>/', views.book_delete, name='book_delete'),
+INSTALLED_APPS = [
+    ...,
+    'project_first_app',
 ]
 ```
 
 ---
 
-### `book_list.html`
+### 2. Создание моделей в `models.py`
 
-```html
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Список книг</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container py-5">
-  <h1 class="mb-4 text-center">📚 Список книг</h1>
-  <div class="d-flex justify-content-end mb-3">
-    <a href="{% url 'book_create' %}" class="btn btn-primary">➕ Добавить книгу</a>
-  </div>
+```python
+from django.db import models
 
-  {% if books %}
-  <table class="table table-striped table-bordered align-middle">
-    <thead class="table-dark text-center">
-      <tr>
-        <th>#</th>
-        <th>Название</th>
-        <th>Автор</th>
-        <th>Год</th>
-        <th>Действия</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for book in books %}
-      <tr>
-        <td>{{ forloop.counter }}</td>
-        <td>{{ book.title }}</td>
-        <td>{{ book.author }}</td>
-        <td>{{ book.year }}</td>
-        <td class="text-center">
-          <a href="{% url 'book_update' book.pk %}" class="btn btn-sm btn-warning">✏ Редактировать</a>
-          <a href="{% url 'book_delete' book.pk %}" class="btn btn-sm btn-danger">🗑 Удалить</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-  <div class="alert alert-info text-center">Нет добавленных книг.</div>
-  {% endif %}
-</div>
-</body>
-</html>
+class Reader(models.Model):
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField(unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+class Book(models.Model):
+    title = models.CharField(max_length=200)
+    author = models.CharField(max_length=200)
+    year = models.PositiveIntegerField()
+    available = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.author}, {self.year})"
+
+class Borrowing(models.Model):
+    reader = models.ForeignKey(Reader, on_delete=models.CASCADE)
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    date_from = models.DateField()
+    date_to = models.DateField()
+
+    def __str__(self):
+        return f"{self.reader} — {self.book}"
 ```
 
 ---
 
-### `book_form.html`
+### 3. Применение миграций
 
-```html
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>{% if book %}Редактировать книгу{% else %}Добавить книгу{% endif %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container py-5">
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h2 class="mb-4">{% if book %}Редактировать{% else %}Добавить{% endif %} книгу</h2>
-      <form method="post">
-        {% csrf_token %}
-        <div class="mb-3">
-          <label class="form-label">Название</label>
-          <input type="text" name="title" class="form-control" value="{{ book.title|default:'' }}" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Автор</label>
-          <input type="text" name="author" class="form-control" value="{{ book.author|default:'' }}" required>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Год издания</label>
-          <input type="number" name="year" class="form-control" value="{{ book.year|default:'' }}" required>
-        </div>
-        <button type="submit" class="btn btn-success">💾 Сохранить</button>
-        <a href="{% url 'book_list' %}" class="btn btn-secondary">⬅ Назад</a>
-      </form>
-    </div>
-  </div>
-</div>
-</body>
-</html>
+```bash
+python manage.py makemigrations
+python manage.py migrate
+```
+
+После выполнения команд создаются таблицы `Reader`, `Book` и `Borrowing` в базе данных **SQLite3**.
+
+---
+
+### 4. Регистрация моделей в `admin.py`
+
+```python
+from django.contrib import admin
+from .models import Reader, Book, Borrowing
+
+@admin.register(Reader)
+class ReaderAdmin(admin.ModelAdmin):
+    list_display = ('first_name', 'last_name', 'email', 'created_at')
+    search_fields = ('first_name', 'last_name', 'email')
+
+@admin.register(Book)
+class BookAdmin(admin.ModelAdmin):
+    list_display = ('title', 'author', 'year', 'available')
+    list_filter = ('available', 'year')
+    search_fields = ('title', 'author')
+
+@admin.register(Borrowing)
+class BorrowingAdmin(admin.ModelAdmin):
+    list_display = ('reader', 'book', 'date_from', 'date_to')
+    list_filter = ('date_from', 'date_to')
 ```
 
 ---
 
-### `book_confirm_delete.html`
+### 5. Создание суперпользователя
 
-```html
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <title>Удаление книги</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-<div class="container py-5">
-  <div class="card shadow-sm text-center">
-    <div class="card-body">
-      <h2>Удалить книгу "{{ book.title }}"?</h2>
-      <form method="post" class="mt-4">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-danger">✅ Да, удалить</button>
-        <a href="{% url 'book_list' %}" class="btn btn-secondary">❌ Отмена</a>
-      </form>
-    </div>
-  </div>
-</div>
-</body>
-</html>
+```bash
+python manage.py createsuperuser
 ```
 
----
-
-## Запуск
-
-1) Выполнить миграции:
-
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
-
-2) Запустить сервер:
-
-   ```bash
-   python manage.py runserver
-   ```
-
-3) Перейти в браузере по адресу:
-
-   ```
-   http://127.0.0.1:8000/
-   ```
+После создания суперпользователя можно войти в административную панель по адресу:
+**[http://127.0.0.1:8000/admin/](http://127.0.0.1:8000/admin/)**
 
 ---
 
-## Результат
+## Результаты
 
-На странице отображается список книг.
-Пользователь может:
-
-* добавлять новые книги;
-* редактировать существующие;
-* удалять записи.
-
-Интерфейс оформлен с использованием **Bootstrap**.
+* Создан Django-проект и приложение `project_first_app`.
+* Описаны модели **Reader**, **Book** и **Borrowing**.
+* Выполнены миграции и проверено подключение базы данных.
+* Настроена административная панель с фильтрацией и поиском.
 
 ---
 
 ## Выводы
 
-1. Реализованы все операции CRUD для модели **Book**.
-2. Интерфейс оформлен с помощью Bootstrap, что улучшает визуальное восприятие.
-3. Работа с базой данных выполняется средствами **Django ORM**.
-4. Проект готов к дальнейшему расширению и интеграции дополнительных функций.
+1. Получен навык создания Django-проекта и приложения.
+2. Освоено описание моделей и связей между ними через ORM.
+3. Настроено взаимодействие с базой данных и админ-панелью.

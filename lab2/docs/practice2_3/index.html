@@ -602,11 +602,35 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-reader_detailhtml" class="md-nav__link">
+  <a href="#4" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Создание шаблона reader_detail.html
+      4. Создание шаблонов
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="4. Создание шаблонов">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#project_first_apptemplatesreader_detailhtml" class="md-nav__link">
+    <span class="md-ellipsis">
+      📄 project_first_app/templates/reader_detail.html
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_first_apptemplatesbooksbook_listhtml" class="md-nav__link">
+    <span class="md-ellipsis">
+      📄 project_first_app/templates/books/book_list.html
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -740,11 +764,35 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#4-reader_detailhtml" class="md-nav__link">
+  <a href="#4" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Создание шаблона reader_detail.html
+      4. Создание шаблонов
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="4. Создание шаблонов">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#project_first_apptemplatesreader_detailhtml" class="md-nav__link">
+    <span class="md-ellipsis">
+      📄 project_first_app/templates/reader_detail.html
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#project_first_apptemplatesbooksbook_listhtml" class="md-nav__link">
+    <span class="md-ellipsis">
+      📄 project_first_app/templates/books/book_list.html
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -812,13 +860,24 @@
 <h2 id="_2">Ход работы</h2>
 <h3 id="1-viewspy">1. Создание представления в <code>views.py</code></h3>
 <pre><code class="language-python">from django.shortcuts import render, get_object_or_404
-from .models import Reader
+from django.core.paginator import Paginator
+from .models import Reader, Book
 
 def reader_detail(request, reader_id):
     reader = get_object_or_404(Reader, pk=reader_id)
     return render(request, 'reader_detail.html', {'reader': reader})
+
+def book_list(request):
+    query = request.GET.get(&quot;q&quot;, &quot;&quot;)
+    books = Book.objects.all()
+    if query:
+        books = books.filter(title__icontains=query) | books.filter(author__icontains=query)
+
+    paginator = Paginator(books, 5)
+    page_number = request.GET.get(&quot;page&quot;)
+    page_obj = paginator.get_page(page_number)
+    return render(request, &quot;books/book_list.html&quot;, {&quot;page_obj&quot;: page_obj, &quot;query&quot;: query})
 </code></pre>
-<p>Представление получает объект <code>Reader</code> по его идентификатору и передает данные в шаблон <code>reader_detail.html</code>.</p>
 <hr />
 <h3 id="2-urlspy">2. Настройка маршрутов в <code>urls.py</code> приложения</h3>
 <pre><code class="language-python">from django.urls import path
@@ -826,6 +885,7 @@ from . import views
 
 urlpatterns = [
     path('reader/&lt;int:reader_id&gt;/', views.reader_detail, name='reader_detail'),
+    path('', views.book_list, name='book_list'),
 ]
 </code></pre>
 <hr />
@@ -839,9 +899,8 @@ urlpatterns = [
 ]
 </code></pre>
 <hr />
-<h3 id="4-reader_detailhtml">4. Создание шаблона <code>reader_detail.html</code></h3>
-<p>Файл:
-<code>project_first_app/templates/reader_detail.html</code></p>
+<h3 id="4">4. Создание шаблонов</h3>
+<h4 id="project_first_apptemplatesreader_detailhtml">📄 <code>project_first_app/templates/reader_detail.html</code></h4>
 <pre><code class="language-html">&lt;!DOCTYPE html&gt;
 &lt;html lang=&quot;ru&quot;&gt;
   &lt;head&gt;
@@ -874,19 +933,115 @@ urlpatterns = [
 &lt;/html&gt;
 </code></pre>
 <hr />
+<h4 id="project_first_apptemplatesbooksbook_listhtml">📄 <code>project_first_app/templates/books/book_list.html</code></h4>
+<pre><code class="language-html">&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;ru&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;Список книг&lt;/title&gt;
+    &lt;link
+      href=&quot;https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css&quot;
+      rel=&quot;stylesheet&quot;
+    /&gt;
+  &lt;/head&gt;
+  &lt;body class=&quot;bg-light&quot;&gt;
+    &lt;div class=&quot;container py-5&quot;&gt;
+      &lt;h2 class=&quot;mb-4 text-center&quot;&gt;📚 Список книг&lt;/h2&gt;
+
+      &lt;form method=&quot;get&quot; class=&quot;mb-4 d-flex justify-content-center&quot;&gt;
+        &lt;input
+          type=&quot;text&quot;
+          name=&quot;q&quot;
+          value=&quot;{{ query }}&quot;
+          class=&quot;form-control w-50 me-2&quot;
+          placeholder=&quot;Поиск по названию или автору...&quot;
+        /&gt;
+        &lt;button type=&quot;submit&quot; class=&quot;btn btn-primary&quot;&gt;🔍 Найти&lt;/button&gt;
+      &lt;/form&gt;
+
+      &lt;table class=&quot;table table-striped table-bordered align-middle&quot;&gt;
+        &lt;thead class=&quot;table-dark text-center&quot;&gt;
+          &lt;tr&gt;
+            &lt;th&gt;#&lt;/th&gt;
+            &lt;th&gt;Название&lt;/th&gt;
+            &lt;th&gt;Автор&lt;/th&gt;
+            &lt;th&gt;Год&lt;/th&gt;
+            &lt;th&gt;Наличие&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+          {% for book in page_obj %}
+          &lt;tr&gt;
+            &lt;td class=&quot;text-center&quot;&gt;{{ forloop.counter }}&lt;/td&gt;
+            &lt;td&gt;{{ book.title }}&lt;/td&gt;
+            &lt;td&gt;{{ book.author }}&lt;/td&gt;
+            &lt;td class=&quot;text-center&quot;&gt;{{ book.year }}&lt;/td&gt;
+            &lt;td class=&quot;text-center&quot;&gt;
+              {% if book.available %} ✅ {% else %} ❌ {% endif %}
+            &lt;/td&gt;
+          &lt;/tr&gt;
+          {% empty %}
+          &lt;tr&gt;
+            &lt;td colspan=&quot;5&quot; class=&quot;text-center text-muted&quot;&gt;
+              Нет доступных книг
+            &lt;/td&gt;
+          &lt;/tr&gt;
+          {% endfor %}
+        &lt;/tbody&gt;
+      &lt;/table&gt;
+
+      &lt;nav aria-label=&quot;Навигация страниц&quot;&gt;
+        &lt;ul class=&quot;pagination justify-content-center&quot;&gt;
+          {% if page_obj.has_previous %}
+          &lt;li class=&quot;page-item&quot;&gt;
+            &lt;a
+              class=&quot;page-link&quot;
+              href=&quot;?page={{ page_obj.previous_page_number }}&amp;q={{ query }}&quot;
+              &gt;←&lt;/a
+            &gt;
+          &lt;/li&gt;
+          {% endif %} {% for num in page_obj.paginator.page_range %} {% if
+          page_obj.number == num %}
+          &lt;li class=&quot;page-item active&quot;&gt;
+            &lt;span class=&quot;page-link&quot;&gt;{{ num }}&lt;/span&gt;
+          &lt;/li&gt;
+          {% else %}
+          &lt;li class=&quot;page-item&quot;&gt;
+            &lt;a class=&quot;page-link&quot; href=&quot;?page={{ num }}&amp;q={{ query }}&quot;
+              &gt;{{ num }}&lt;/a
+            &gt;
+          &lt;/li&gt;
+          {% endif %} {% endfor %} {% if page_obj.has_next %}
+          &lt;li class=&quot;page-item&quot;&gt;
+            &lt;a
+              class=&quot;page-link&quot;
+              href=&quot;?page={{ page_obj.next_page_number }}&amp;q={{ query }}&quot;
+              &gt;→&lt;/a
+            &gt;
+          &lt;/li&gt;
+          {% endif %}
+        &lt;/ul&gt;
+      &lt;/nav&gt;
+    &lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+<hr />
 <h3 id="5">5. Проверка работы</h3>
-<p>После запуска сервера командой:</p>
 <pre><code class="language-bash">python manage.py runserver
 </code></pre>
-<p>Переходим по адресу:
-<strong><a href="http://127.0.0.1:8000/reader/1/">http://127.0.0.1:8000/reader/1/</a></strong>
-На странице отображается информация о первом читателе из базы данных.</p>
+<p>Адреса для проверки:</p>
+<ul>
+<li><strong><a href="http://127.0.0.1:8000/">http://127.0.0.1:8000/</a></strong> — список книг с поиском и пагинацией.</li>
+<li><strong><a href="http://127.0.0.1:8000/reader/1/">http://127.0.0.1:8000/reader/1/</a></strong> — страница информации о читателе.</li>
+</ul>
 <hr />
 <h2 id="_3">Результаты</h2>
 <ul>
-<li>Реализовано представление <code>reader_detail</code>, отображающее данные конкретного читателя.</li>
+<li>Реализованы представления <code>reader_detail</code> и <code>book_list</code>.</li>
+<li>Внедрена пагинация и поиск по названию и автору.</li>
 <li>Настроена маршрутизация между проектом и приложением.</li>
-<li>Создан HTML-шаблон с использованием <strong>Bootstrap 5</strong>.</li>
+<li>Созданы HTML-шаблоны с использованием <strong>Bootstrap 5</strong>.</li>
 <li>Проверена корректная передача данных из модели в шаблон.</li>
 </ul>
 <hr />
@@ -899,7 +1054,7 @@ urlpatterns = [
 <h2 id="_5">Выводы</h2>
 <ol>
 <li>Освоено создание маршрутов, представлений и шаблонов в Django.</li>
-<li>Получен опыт использования шаблонных тегов и контекста.</li>
+<li>Реализована пагинация и поиск в списках данных.</li>
 <li>Применён Bootstrap для стилизации интерфейса и улучшения внешнего вида.</li>
 </ol>
 

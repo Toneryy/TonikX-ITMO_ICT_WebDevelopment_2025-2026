@@ -14,13 +14,17 @@
 |---|-----------|--------|
 | 1 | [Лабораторная работа №1 — Сокеты, TCP/UDP, HTTP](lab1/docs/index.md) |
 | 2 | [Практическая работа №2 — Django, CRUD, Bootstrap](lab2/docs/index.md) |
+| 3 | [Лабораторная работа №3 — Django REST Framework + Swagger](lab3/index.md) |
 
 ---
 
 ## ⚙️ Используемые технологии
 
 - Python 3.12  
-- Django  
+- Django 4.2 + Django REST Framework 3.14
+- drf-spectacular (Swagger/OpenAPI)
+- Djoser (аутентификация)
+- PostgreSQL
 - MkDocs + Material  
 - HTML / CSS / Bootstrap  
 - Socket, threading, json  

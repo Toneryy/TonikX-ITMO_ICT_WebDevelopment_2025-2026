@@ -78,6 +78,19 @@ WSGI_APPLICATION = 'django_project_meshcheryakov.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
+# Для использования PostgreSQL раскомментируйте следующий блок и закомментируйте SQLite
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'reading_room_db',
+#         'USER': 'postgres',
+#         'PASSWORD': 'your_password',  # Замените на ваш пароль
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
+
+# SQLite для разработки (по умолчанию)
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -108,9 +121,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ru-ru'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Europe/Moscow'
 
 USE_I18N = True
 
@@ -126,3 +139,8 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Login settings
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'book_list'
+LOGOUT_REDIRECT_URL = 'book_list'

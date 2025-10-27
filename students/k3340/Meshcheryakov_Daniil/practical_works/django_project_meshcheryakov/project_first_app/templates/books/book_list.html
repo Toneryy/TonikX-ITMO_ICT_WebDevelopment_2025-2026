@@ -32,7 +32,16 @@
         {% for book in page_obj %}
         <tr>
           <td class="text-center">{{ forloop.counter }}</td>
-          <td>{{ book.title }}</td>
+          <td>
+            <a href="{% url 'book_detail' book.id %}" class="text-decoration-none">
+              {{ book.title }}
+            </a>
+            {% if not book.available %}
+              <span class="badge bg-danger ms-2">Занята</span>
+            {% else %}
+              <span class="badge bg-success ms-2">Доступна</span>
+            {% endif %}
+          </td>
           <td>{{ book.author }}</td>
           <td class="text-center">{{ book.year }}</td>
         </tr>
